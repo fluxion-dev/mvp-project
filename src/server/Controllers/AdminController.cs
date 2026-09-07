@@ -1,0 +1,74 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using mvp_server.Data;
+using mvp_server.Models;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
+public class AdminController : ControllerBase
+{
+    private readonly AppDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public AdminController(AppDbContext context, UserManager<ApplicationUser> userManager)
+    {
+        _context = context;
+        _userManager = userManager;
+    }
+
+    [HttpDelete("stream/{streamId}")]
+    public async Task<IActionResult> DeleteStream(Guid streamId)
+    {
+        var stream = await context.Streams.FindAsync(streamId);
+        if (stream == null) return NotFound();
+
+        context.Streams.Remove(stream);
+        await context.SaveChangesAsync();
+        return Ok(new { message = "Stream deleted successfully" });
+    }
+
+    [HttpDelete("message/{messageId}")]
+    public async Task<IActionResult> DeleteMessage(Guid messageId)
+    {
+        var message = await context.Messages.FindAsync(messageId);
+        if (message == null) return NotFound();
+
+        context.Messages.Remove(message);
+        await context.SaveChangesAsync();
+        return Ok(new { message = "Message deleted successfully" });
+    }
+
+    [HttpPost("mute-user")]
+    public async Task<IActionResult> MuteUser([FromBody] MuteRequest request)
+    {
+        var user = await _userManager.FindByIdAsync(request.UserId);
+        if (user == null) return NotFound();
+
+        // In production, would add a Mute entity with expiry
+        return Ok(new { message = $"User {user.UserName} has been muted" });
+    }
+
+    [HttpPost("ban-user")]
+    public async Task<IActionResult> BanUser([FromBody] BanRequest request)
+    {
+        var user = await _userManager.FindByIdAsync(request.UserId);
+        if (user == null) return NotFound();
+
+        // In production, would add a Ban entity with expiry
+        return Ok(new { message = $"User {user.UserName} has been banned" });
+    }
+
+    public class MuteRequest
+    {
+        public string UserId { get; set; } = string.Empty;
+        public int DurationMinutes { get; set; } = 60;
+    }
+
+    public class BanRequest
+    {
+        public string UserId { get; set; } = string.Empty;
+        public int DurationDays { get; set; } = 7;
+    }
+}

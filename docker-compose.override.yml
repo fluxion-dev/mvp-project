@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  api:
+    environment:
+      - ASPNETCORE_HTTPS_PORT=443
+    ports:
+      - "8080:80"
+      - "443:443"
+
+  client:
+    environment:
+      - VITE_API_BASE=http://localhost:8080

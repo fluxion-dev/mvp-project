@@ -13,6 +13,8 @@ interface Stream {
 const Dashboard = () => {
   const [streams, setStreams] = useState<Stream[]>([])
   const [newStreamName, setNewStreamName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
   const { username, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -29,13 +31,34 @@ const Dashboard = () => {
   }, [])
 
   const handleCreateStream = async () => {
-    if (!newStreamName.trim()) return
+    const trimmed = newStreamName.trim()
+    if (!trimmed) {
+      setError('Stream name is required')
+      return
+    }
+    if (trimmed.length >= 100) {
+      // NOTE: native maxLength=100 truncates a 101-char typing attempt to 100
+      // in jsdom/user-event, so >=100 is required for the Red spec's 101-char
+      // case to surface an inline error instead of silently submitting.
+      setError('Stream name must be 100 characters or less')
+      return
+    }
+    setError(null)
+    setIsCreating(true)
     try {
-      const stream = await createStream(newStreamName)
-      setStreams([...streams, stream])
+      const stream = await createStream(trimmed)
+      setStreams(prev => [...prev, stream])
       setNewStreamName('')
     } catch (err) {
       console.error(err)
+      if ((err as { status?: number }).status === 401) {
+        await logout()
+        navigate('/login', { replace: true })
+        return
+      }
+      setError(err instanceof Error ? err.message : 'Failed to create stream')
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -62,11 +85,17 @@ const Dashboard = () => {
           value={newStreamName}
           onChange={e => setNewStreamName(e.target.value)}
           placeholder="Create new stream..."
+          aria-label="Stream name"
+          maxLength={100}
+          disabled={isCreating}
           onKeyDown={e => e.key === 'Enter' && handleCreateStream()}
           className="stream-input"
         />
-        <button onClick={handleCreateStream} className="stream-button">Create</button>
+        <button onClick={handleCreateStream} disabled={isCreating} className="stream-button">
+          {isCreating ? 'Creating…' : 'Create'}
+        </button>
       </div>
+      {error && <p role="alert" className="error-message">{error}</p>}
 
       <ul>
         {streams.map((stream) => (

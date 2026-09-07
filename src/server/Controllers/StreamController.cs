@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +10,7 @@ using mvp_server.Data;
 using mvp_server.Models;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/streams")]
 public class StreamController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -46,12 +47,16 @@ public class StreamController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<ActionResult<StreamDto>> CreateStream(StreamCreateRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(new { message = "name is required" });
+
         var stream = new mvp_server.Models.Stream
         {
             Id = Guid.NewGuid(),
-            Name = request.Name,
+            Name = request.Name.Trim(),
             ActivityLevel = 0,
             CreatedAt = DateTime.UtcNow
         };
@@ -80,13 +85,7 @@ public class StreamDto
 
 public class StreamCreateRequest
 {
+    [Required]
+    [StringLength(100, MinimumLength = 1)]
     public string Name { get; set; } = string.Empty;
-}
-
-public class StreamEntity
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public int ActivityLevel { get; set; }
-    public DateTime CreatedAt { get; set; }
 }

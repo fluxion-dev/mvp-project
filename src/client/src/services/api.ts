@@ -62,7 +62,16 @@ export const getStreams = async (): Promise<Stream[]> => {
   const res = await fetch(`${API_BASE}/api/streams`, {
     headers: getAuthHeaders()
   })
-  if (!res.ok) throw new Error('Failed to fetch streams')
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    const message =
+      errorData.message ||
+      errorData.error ||
+      'Failed to fetch streams'
+    const err = new Error(message)
+    ;(err as unknown as { status: number }).status = res.status
+    throw err
+  }
   return res.json()
 }
 
@@ -75,7 +84,16 @@ export const createStream = async (name: string): Promise<Stream> => {
     },
     body: JSON.stringify({ name }),
   })
-  if (!res.ok) throw new Error('Failed to create stream')
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    const message =
+      errorData.message ||
+      errorData.error ||
+      'Failed to create stream'
+    const err = new Error(message)
+    ;(err as unknown as { status: number }).status = res.status
+    throw err
+  }
   return res.json()
 }
 

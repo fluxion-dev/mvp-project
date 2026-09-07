@@ -1,10 +1,9 @@
 const API_BASE = 'http://localhost:5000'
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('mvp_token') ?? sessionStorage.getItem('mvp_token')
-  if (token) return { 'Authorization': `Bearer ${token}` }
-  const username = localStorage.getItem('mvp_username') ?? sessionStorage.getItem('mvp_username')
-  return username ? { 'x-username': username } : {}
+  if (token) return { Authorization: `Bearer ${token}` }
+  return {}
 }
 
 export interface Stream {

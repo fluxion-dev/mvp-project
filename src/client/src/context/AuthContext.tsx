@@ -5,6 +5,7 @@ interface AuthContextType {
   token: string | undefined
   userId: string | undefined
   username: string | undefined
+  isAuthenticated: boolean
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   logout: () => Promise<void>
   setAuth: (data: AuthResponse, rememberMe?: boolean) => void
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   token: undefined,
   userId: undefined,
   username: undefined,
+  isAuthenticated: false,
   login: async () => {},
   logout: async () => {},
   setAuth: () => {},
@@ -98,7 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ token, userId, username, login, logout, setAuth }}>
+    <AuthContext.Provider value={{ token, userId, username, isAuthenticated: !!token, login, logout, setAuth }}>
       {children}
     </AuthContext.Provider>
   )

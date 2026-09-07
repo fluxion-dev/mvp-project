@@ -175,3 +175,14 @@ export const login = async (email: string, password: string): Promise<AuthRespon
   }
   return res.json()
 }
+
+export const logout = async (): Promise<void> => {
+  try {
+    await fetch(`${API_BASE}/api/auth/logout`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders() },
+    })
+  } catch (err) {
+    console.warn('Logout request failed (best-effort, clearing local state anyway):', err)
+  }
+}

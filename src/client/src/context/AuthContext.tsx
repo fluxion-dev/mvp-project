@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState } from 'react'
-import { AuthResponse, login as apiLogin } from '../services/api'
+import { AuthResponse, login as apiLogin, logout as apiLogout } from '../services/api'
 
 interface AuthContextType {
   token: string | undefined
   userId: string | undefined
   username: string | undefined
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   setAuth: (data: AuthResponse, rememberMe?: boolean) => void
 }
 
@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   userId: undefined,
   username: undefined,
   login: async () => {},
-  logout: () => {},
+  logout: async () => {},
   setAuth: () => {},
 })
 
@@ -80,17 +80,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const logout = () => {
-    setToken(undefined)
-    setUserId(undefined)
-    setUsername(undefined)
-    localStorage.removeItem('mvp_token')
-    localStorage.removeItem('mvp_userId')
-    localStorage.removeItem('mvp_username')
-    localStorage.removeItem('mvp_remember')
-    sessionStorage.removeItem('mvp_token')
-    sessionStorage.removeItem('mvp_userId')
-    sessionStorage.removeItem('mvp_username')
+  const logout = async (): Promise<void> => {
+    try {
+      await apiLogout()
+    } finally {
+      setToken(undefined)
+      setUserId(undefined)
+      setUsername(undefined)
+      localStorage.removeItem('mvp_token')
+      localStorage.removeItem('mvp_userId')
+      localStorage.removeItem('mvp_username')
+      localStorage.removeItem('mvp_remember')
+      sessionStorage.removeItem('mvp_token')
+      sessionStorage.removeItem('mvp_userId')
+      sessionStorage.removeItem('mvp_username')
+    }
   }
 
   return (

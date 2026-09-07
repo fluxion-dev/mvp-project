@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -66,11 +68,24 @@ public class AuthController : ControllerBase
         return Unauthorized(new { message = "invalid email or password" });
     }
 
+    /// <summary>
+    /// Logs out the current user.
+    /// NOTE: JWTs are stateless and cannot be server-invalidated without a
+    /// denylist. Primary logout is client-side (discard the token). The
+    /// SignOutAsync calls below are best-effort for completeness (e.g. cookie
+    /// scheme if ever enabled) and are no-ops for pure JWT clients.
+    /// Future enhancement (out of scope): short-lived access tokens +
+    /// refresh-token rotation with server-side revocation, or a JWT denylist.
+    /// Both require persistent storage.
+    /// </summary>
     [HttpPost("logout")]
+    [Authorize]
     public async Task<IActionResult> Logout()
     {
-        await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
-        return Ok();
+        // Best-effort only — JwtBearer handler holds no server-side session state.
+        try { await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme); } catch { /* ignore: scheme may not be registered */ }
+        try { await HttpContext.SignOutAsync(JwtBearerDefaults.AuthenticationScheme); } catch { /* ignore: JWT sign-out is stateless */ }
+        return Ok(new { message = "logged out successfully" });
     }
 
     public class RegisterRequest

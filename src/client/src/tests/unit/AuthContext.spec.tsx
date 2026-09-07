@@ -11,6 +11,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('AuthContext', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   it('should initialize with no auth state', () => {
@@ -64,15 +65,17 @@ describe('AuthContext', () => {
     expect(localStorage.getItem('mvp_token')).toBe('jwt-token')
   })
 
-  it('should clear auth on logout', () => {
+  // Forward-compatible with issue #3 intended `async logout(): Promise<void>`
+  // (await works against both the current sync impl and the future async one).
+  it('should clear auth on logout', async () => {
     localStorage.setItem('mvp_token', 'token')
     localStorage.setItem('mvp_userId', 'user-1')
     localStorage.setItem('mvp_username', 'TestUser')
 
     const { result } = renderHook(() => useAuth(), { wrapper })
 
-    act(() => {
-      result.current.logout()
+    await act(async () => {
+      await result.current.logout()
     })
 
     expect(result.current.token).toBeUndefined()

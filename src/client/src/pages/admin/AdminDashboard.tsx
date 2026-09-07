@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getStreams, deleteStream as apiDeleteStream, getMessages as apiGetMessages, deleteMessage as apiDeleteMessage, muteUser, banUser } from '../../services/api'
 
@@ -20,6 +21,7 @@ const AdminDashboard = () => {
   const [muteUserId, setMuteUserId] = useState<string | null>(null)
   const [banUserId, setBanUserId] = useState<string | null>(null)
   const { username, logout } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     async function fetchStreams() {
@@ -85,6 +87,11 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error(err)
     }
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -156,7 +163,7 @@ const AdminDashboard = () => {
       {username && (
         <p>Logged in as: {username}</p>
       )}
-      <button onClick={logout} style={{ marginLeft: '10px' }}>Logout</button>
+      <button onClick={handleLogout} style={{ marginLeft: '10px' }}>Logout</button>
     </div>
   )
 }

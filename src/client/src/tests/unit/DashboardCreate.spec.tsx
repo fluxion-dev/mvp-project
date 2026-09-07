@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -101,7 +101,11 @@ describe('Dashboard create-stream hardening (issue #5) — Red', () => {
     const input =
       screen.queryByLabelText(/stream name|new stream/i) ??
       screen.getByPlaceholderText(/create new stream/i)
-    await user.type(input, longName)
+    // Bypass native maxLength=100 (jsdom truncates typed input to 100 chars,
+    // so user.type can never reach 101 chars). fireEvent.change sets the
+    // 101-char value directly so the >100 guard is exercised (paste /
+    // programmatic / backend-400 path).
+    fireEvent.change(input, { target: { value: longName } })
     await user.click(screen.getByRole('button', { name: /^create$/i }))
 
     const alert = await screen.findByRole('alert')

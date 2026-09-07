@@ -1,8 +1,8 @@
 const API_BASE = 'http://localhost:5000'
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('mvp_token') ?? sessionStorage.getItem('mvp_token')
-  if (token) return { 'Authorization': `Bearer ${token}` }
+  if (token) return { Authorization: `Bearer ${token}` }
   return {}
 }
 

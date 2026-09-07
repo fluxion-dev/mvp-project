@@ -82,11 +82,3 @@ public class StreamCreateRequest
 {
     public string Name { get; set; } = string.Empty;
 }
-
-public class StreamEntity
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public int ActivityLevel { get; set; }
-    public DateTime CreatedAt { get; set; }
-}

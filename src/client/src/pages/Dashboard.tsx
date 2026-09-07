@@ -36,10 +36,10 @@ const Dashboard = () => {
       setError('Stream name is required')
       return
     }
-    if (trimmed.length >= 100) {
-      // NOTE: native maxLength=100 truncates a 101-char typing attempt to 100
-      // in jsdom/user-event, so >=100 is required for the Red spec's 101-char
-      // case to surface an inline error instead of silently submitting.
+    if (trimmed.length > 100) {
+      // NOTE: native maxLength=100 handles normal typing; this guard covers
+      // paste/programmatic values that bypass maxLength and aligns with
+      // backend [StringLength(100)] (100 allowed, 101 rejected).
       setError('Stream name must be 100 characters or less')
       return
     }

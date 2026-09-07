@@ -1,20 +1,23 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using mvp_server.Models;
+using AppStream = mvp_server.Models.Stream;
 
-public class AppDbContext : DbContext
+namespace mvp_server.Data;
+
+public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    public DbSet<Stream> Streams { get; set; } = null!;
+    public DbSet<AppStream> Streams { get; set; } = null!;
     public DbSet<Message> Messages { get; set; } = null!;
-    public DbSet<ApplicationUser> Users { get; set; } = null!;
-    public DbSet<IdentityRole> Roles { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Stream>(entity =>
+        modelBuilder.Entity<AppStream>(entity =>
         {
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.ActivityLevel).HasDefaultValue(0);

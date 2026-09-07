@@ -10,6 +10,8 @@ interface Stream {
   activityLevel: number
 }
 
+const MAX_STREAM_NAME_LENGTH = 100
+
 const Dashboard = () => {
   const [streams, setStreams] = useState<Stream[]>([])
   const [newStreamName, setNewStreamName] = useState('')
@@ -36,8 +38,8 @@ const Dashboard = () => {
       setError('Stream name is required')
       return
     }
-    if (trimmed.length > 100) {
-      // NOTE: native maxLength=100 handles normal typing; this guard covers
+    if (trimmed.length > MAX_STREAM_NAME_LENGTH) {
+      // NOTE: native maxLength handles normal typing; this guard covers
       // paste/programmatic values that bypass maxLength and aligns with
       // backend [StringLength(100)] (100 allowed, 101 rejected).
       setError('Stream name must be 100 characters or less')
@@ -86,7 +88,7 @@ const Dashboard = () => {
           onChange={e => setNewStreamName(e.target.value)}
           placeholder="Create new stream..."
           aria-label="Stream name"
-          maxLength={100}
+          maxLength={MAX_STREAM_NAME_LENGTH}
           disabled={isCreating}
           onKeyDown={e => e.key === 'Enter' && handleCreateStream()}
           className="stream-input"

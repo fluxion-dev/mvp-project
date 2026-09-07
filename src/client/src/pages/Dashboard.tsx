@@ -1,14 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { getStreams, createStream } from '../services/api'
+import { Link, useNavigate } from 'react-router-dom'
+import { getStreams, createStream, type Stream } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-
-interface Stream {
-  id: string
-  name: string
-  messageCount: number
-  activityLevel: number
-}
 
 const MAX_STREAM_NAME_LENGTH = 100
 
@@ -17,18 +10,32 @@ const Dashboard = () => {
   const [newStreamName, setNewStreamName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [listError, setListError] = useState<string | null>(null)
   const { username, logout } = useAuth()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    async function fetchStreams() {
-      try {
-        const data = await getStreams()
-        setStreams(data)
-      } catch (err) {
-        console.error(err)
+  async function fetchStreams() {
+    setIsLoading(true)
+    setListError(null)
+    try {
+      const data = await getStreams()
+      setStreams(data)
+      setListError(null)
+    } catch (err) {
+      console.error(err)
+      if ((err as { status?: number }).status === 401) {
+        await logout()
+        navigate('/login', { replace: true })
+        return
       }
+      setListError(err instanceof Error ? err.message : 'Failed to fetch streams')
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchStreams()
   }, [])
 
@@ -99,21 +106,32 @@ const Dashboard = () => {
       </div>
       {error && <p role="alert" className="error-message">{error}</p>}
 
+      {isLoading && <p>Loading streams…</p>}
+      {!isLoading && listError && (
+        <>
+          <p role="alert" className="error-message">{listError}</p>
+          <button type="button" onClick={fetchStreams} className="stream-button-small">
+            Retry
+          </button>
+        </>
+      )}
+      {!isLoading && !listError && streams.length === 0 && (
+        <p>No streams yet. Create your first stream above to get started.</p>
+      )}
+
+      {!isLoading && !listError && streams.length > 0 && (
       <ul>
         {streams.map((stream) => (
           <li key={stream.id} className="stream-item">
-            <h3>{stream.name}</h3>
-            <p>Messages: {stream.messageCount}</p>
-            <p>Activity: {stream.activityLevel}</p>
-            <button
-              className="stream-button-small"
-              onClick={() => navigate(`/stream/${stream.id}`)}
-            >
-              View
-            </button>
+            <Link to={`/stream/${stream.id}`}>
+              <h3>{stream.name}</h3>
+              <p>Messages: {stream.messageCount}</p>
+              <p>Activity: {stream.activityLevel}</p>
+            </Link>
           </li>
         ))}
       </ul>
+      )}
     </div>
   )
 }

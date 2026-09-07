@@ -85,4 +85,21 @@ describe('AuthContext', () => {
     expect(localStorage.getItem('mvp_userId')).toBeNull()
     expect(localStorage.getItem('mvp_username')).toBeNull()
   })
+
+  // Issue #4 Option A: AuthContext must expose isAuthenticated = !!token.
+  describe('isAuthenticated (issue #4 Option A)', () => {
+    it('is false when unauthenticated', () => {
+      const { result } = renderHook(() => useAuth(), { wrapper })
+      expect(result.current.isAuthenticated).toBe(false)
+    })
+
+    it('is true when token is present', () => {
+      localStorage.setItem('mvp_token', 'test-token')
+      localStorage.setItem('mvp_userId', 'user-123')
+      localStorage.setItem('mvp_username', 'TestUser')
+
+      const { result } = renderHook(() => useAuth(), { wrapper })
+      expect(result.current.isAuthenticated).toBe(true)
+    })
+  })
 })

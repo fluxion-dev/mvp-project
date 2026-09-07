@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebSockets;
@@ -29,8 +30,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>()
   .AddEntityFrameworkStores<AppDbContext>()
   .AddDefaultTokenProviders();
 
-// JWT authentication
-builder.Services.AddAuthentication()
+// JWT authentication — set as the default scheme so plain [Authorize]
+// resolves to JWT Bearer. Login/register remain anonymous (no [Authorize]).
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
   .AddJwtBearer(options =>
   {
       options.TokenValidationParameters = new TokenValidationParameters

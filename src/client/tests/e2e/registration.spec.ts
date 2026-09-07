@@ -141,6 +141,13 @@ test.describe('Navigation', () => {
     await seedTestUser()
     await loginViaUi(page)
     await page.getByRole('button', { name: /logout/i }).click()
+    // Intended end state: Dashboard awaits logout() then navigates to /login.
     await expect(page).toHaveURL(`${BASE}/login`)
+    // JWT is stateless — client must drop the token on logout.
+    expect(await page.evaluate(() => localStorage.getItem('mvp_token'))).toBeNull()
+    expect(await page.evaluate(() => sessionStorage.getItem('mvp_token'))).toBeNull()
+    // Visiting / after logout must bounce back to /login via ProtectedRoute.
+    await page.goto(`${BASE}/`)
+    await expect(page).toHaveURL(/\/login/)
   })
 })

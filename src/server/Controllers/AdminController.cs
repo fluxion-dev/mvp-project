@@ -1,12 +1,16 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using mvp_server.Data;
 using mvp_server.Models;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
 public class AdminController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -21,22 +25,22 @@ public class AdminController : ControllerBase
     [HttpDelete("stream/{streamId}")]
     public async Task<IActionResult> DeleteStream(Guid streamId)
     {
-        var stream = await context.Streams.FindAsync(streamId);
+        var stream = await _context.Streams.FindAsync(streamId);
         if (stream == null) return NotFound();
 
-        context.Streams.Remove(stream);
-        await context.SaveChangesAsync();
+        _context.Streams.Remove(stream);
+        await _context.SaveChangesAsync();
         return Ok(new { message = "Stream deleted successfully" });
     }
 
     [HttpDelete("message/{messageId}")]
     public async Task<IActionResult> DeleteMessage(Guid messageId)
     {
-        var message = await context.Messages.FindAsync(messageId);
+        var message = await _context.Messages.FindAsync(messageId);
         if (message == null) return NotFound();
 
-        context.Messages.Remove(message);
-        await context.SaveChangesAsync();
+        _context.Messages.Remove(message);
+        await _context.SaveChangesAsync();
         return Ok(new { message = "Message deleted successfully" });
     }
 

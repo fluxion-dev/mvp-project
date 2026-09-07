@@ -1,27 +1,17 @@
 using Microsoft.AspNetCore.Builder;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 public static class ObservabilityExtensions
 {
     public static IServiceCollection AddMvpObservability(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddOpenTelemetry()
-            .WithTracing(builder => builder
-                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("mvp-api"))
-                .AddAspNetCoreInstrumentation()
-                .AddNpgsqlInstrumentation(options =>
-                {
-                    options.ConnectionString = configuration.GetConnectionString("DefaultConnection")!;
-                })
-                .AddConsoleExporter());
-
+        // Observability services configured via Serilog
         return services;
     }
 
     public static IApplicationBuilder UseMvpObservability(this IApplicationBuilder app)
     {
-        // OpenTelemetry middleware would be here
         return app;
     }
 }

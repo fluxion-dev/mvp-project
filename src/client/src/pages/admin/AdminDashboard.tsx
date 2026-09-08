@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { getStreams, deleteStream as apiDeleteStream, getMessages as apiGetMessages, deleteMessage as apiDeleteMessage, muteUser, banUser } from '../../services/api'
+import { getStreams, deleteStream as apiDeleteStream, getMessages as apiGetMessages, deleteMessage as apiDeleteMessage, muteUser, banUser, type Stream } from '../../services/api'
 
 interface Message {
   id: string
@@ -14,9 +14,16 @@ interface Message {
   }
 }
 
+// NOTE: No client-side requireAdmin gate here. JWTs carry no roles claim yet,
+// so role gating would be speculative. Admin is enforced server-side and
+// surfaces as 403 ("Admin only") messaging below.
+
 const AdminDashboard = () => {
-  const [streams, setStreams] = useState<string[]>([])
+  const [streams, setStreams] = useState<Stream[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [streamsError, setStreamsError] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false)
   const [selectedStream, setSelectedStream] = useState<string | null>(null)
   const [muteUserId, setMuteUserId] = useState<string>('')
   const [banUserId, setBanUserId] = useState<string>('')
@@ -30,21 +37,33 @@ const AdminDashboard = () => {
   const { username, logout } = useAuth()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    async function fetchStreams() {
-      try {
-        const data = await getStreams()
-        setStreams(data.map(s => s.id))
-      } catch (err) {
-        console.error(err)
+  async function fetchStreams() {
+    setIsLoading(true)
+    setStreamsError(null)
+    try {
+      const data = await getStreams()
+      setStreams(data)
+    } catch (err) {
+      console.error(err)
+      if ((err as { status?: number }).status === 401) {
+        await logout()
+        navigate('/login', { replace: true })
+        return
       }
+      setStreamsError(err instanceof Error ? err.message : 'Failed to fetch streams')
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchStreams()
   }, [])
 
   const handleStreamSelect = async (streamId: string) => {
     setSelectedStream(streamId)
     setAdminError(null)
+    setIsMessagesLoading(true)
     try {
       const data = await apiGetMessages(streamId)
       setMessages(data)
@@ -56,6 +75,8 @@ const AdminDashboard = () => {
         return
       }
       setAdminError(err instanceof Error ? err.message : 'Failed to fetch messages')
+    } finally {
+      setIsMessagesLoading(false)
     }
   }
 
@@ -65,7 +86,7 @@ const AdminDashboard = () => {
     setDeletingStreamIds(prev => [...prev, streamId])
     try {
       await apiDeleteStream(streamId)
-      setStreams(prev => prev.filter(id => id !== streamId))
+      setStreams(prev => prev.filter(s => s.id !== streamId))
       if (selectedStream === streamId) {
         setSelectedStream(null)
         setMessages([])
@@ -194,49 +215,88 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       <h1>Admin Dashboard</h1>
       {adminError && <p role="alert" className="error-message">{adminError}</p>}
-      
+
       <div className="admin-controls">
         <h3>Streams</h3>
-        <ul>
-          {streams.map(id => (
-            <li key={id}>
-              <span>Stream {id}</span>
-              <button
-                onClick={() => handleStreamSelect(id)}
-                style={{ marginLeft: '10px' }}
-                title="View messages"
-              >
-                View
-              </button>
-              <button
-                onClick={() => handleDeleteStream(id)}
-                disabled={deletingStreamIds.includes(id)}
-                style={{ marginLeft: '10px', background: 'tomato', color: 'white' }}
-                title="Delete stream"
-              >
-                {deletingStreamIds.includes(id) ? 'Deleting…' : 'Delete'}
-              </button>
-            </li>
+
+        <label htmlFor="admin-stream-select">Select stream</label>
+        <select
+          id="admin-stream-select"
+          className="admin-select"
+          value={selectedStream ?? ''}
+          disabled={isLoading || streams.length === 0}
+          onChange={e => {
+            if (e.target.value) void handleStreamSelect(e.target.value)
+          }}
+        >
+          <option value="">-- Select a stream --</option>
+          {streams.map(stream => (
+            <option key={stream.id} value={stream.id}>
+              {stream.name}
+            </option>
           ))}
-        </ul>
+        </select>
+
+        {isLoading && <p>Loading streams…</p>}
+        {!isLoading && streamsError && (
+          <>
+            <p role="alert" className="error-message">{streamsError}</p>
+            <button type="button" onClick={fetchStreams} className="stream-button-small">
+              Retry
+            </button>
+          </>
+        )}
+        {!isLoading && !streamsError && streams.length === 0 && (
+          <p>No streams yet. Create one from the dashboard to get started.</p>
+        )}
+
+        {!isLoading && !streamsError && streams.length > 0 && (
+          <ul>
+            {streams.map(stream => (
+              <li key={stream.id} className="admin-stream-item">
+                <span>{stream.name}</span>{' '}
+                <span>{`Stream ${stream.id}`}</span>
+                <button
+                  onClick={() => handleStreamSelect(stream.id)}
+                  title="View messages"
+                  className="admin-button"
+                >
+                  View
+                </button>
+                <button
+                  onClick={() => handleDeleteStream(stream.id)}
+                  disabled={deletingStreamIds.includes(stream.id)}
+                  title="Delete stream"
+                  className="admin-button-danger"
+                >
+                  {deletingStreamIds.includes(stream.id) ? 'Deleting…' : 'Delete'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <h3>Messages</h3>
         {selectedStream && (
           <div>
             <p>Messages for stream: {selectedStream}</p>
+            {isMessagesLoading && <p>Loading messages…</p>}
+            {!isMessagesLoading && messages.length === 0 && (
+              <p>No messages yet in this stream.</p>
+            )}
             <ul>
               {messages.map((msg) => (
-                <li key={msg.id} style={{ marginBottom: '10px', padding: '5px', background: '#f0f0f0' }}>
+                <li key={msg.id} className="admin-message-item">
                   <strong>{msg.user.username}:</strong> {msg.content}
                   <br />
-                  <small>{new Date(msg.createdAt).toLocaleTimeString()}</small>
+                  <small>{new Date(msg.createdAt).toLocaleString()}</small>
                   <button
-                    style={{ marginLeft: '10px', background: 'tomato', color: 'white', fontSize: '10px' }}
                     onClick={() => handleDeleteMessage(msg.id)}
                     disabled={deletingMessageIds.includes(msg.id)}
                     title="Delete message"
+                    className="admin-button-danger-small"
                   >
-                    {deletingMessageIds.includes(msg.id) ? 'Deleting…' : 'Del'}
+                    {deletingMessageIds.includes(msg.id) ? 'Deleting…' : 'Delete'}
                   </button>
                 </li>
               ))}
@@ -254,32 +314,32 @@ const AdminDashboard = () => {
               placeholder="User ID to mute"
               value={muteUserId}
               onChange={e => setMuteUserId(e.target.value)}
-              style={{ marginRight: '5px' }}
+              className="admin-input"
             />
             <input
               type="text"
               placeholder="Mute duration (minutes)"
               value={muteDuration}
               onChange={e => setMuteDuration(e.target.value)}
-              style={{ marginRight: '5px' }}
+              className="admin-input"
             />
-            <button onClick={handleMuteUser} style={{ marginLeft: '5px' }}>Mute</button>
-            
+            <button onClick={handleMuteUser} className="admin-button">Mute</button>
+
             <input
               type="text"
               placeholder="User ID to ban"
               value={banUserId}
               onChange={e => setBanUserId(e.target.value)}
-              style={{ marginRight: '5px' }}
+              className="admin-input"
             />
             <input
               type="text"
               placeholder="Ban duration (days)"
               value={banDuration}
               onChange={e => setBanDuration(e.target.value)}
-              style={{ marginRight: '5px' }}
+              className="admin-input"
             />
-            <button onClick={handleBanUser}>Ban</button>
+            <button onClick={handleBanUser} className="admin-button">Ban</button>
           </div>
         )}
       </div>
@@ -287,7 +347,7 @@ const AdminDashboard = () => {
       {username && (
         <p>Logged in as: {username}</p>
       )}
-      <button onClick={handleLogout} style={{ marginLeft: '10px' }}>Logout</button>
+      <button onClick={handleLogout} className="logout-button">Logout</button>
     </div>
   )
 }

@@ -60,8 +60,8 @@ describe('AdminDashboard hardening (issue #16) — Red', () => {
     renderAdmin()
     // Streams carry names; admin list must surface them.
     // Current: stores string[] ids and renders `Stream {id}`, dropping name (Red).
-    expect(await screen.findByText('General')).toBeTruthy()
-    expect(screen.getByText('Random')).toBeTruthy()
+    expect((await screen.findAllByText('General')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Random').length).toBeGreaterThan(0)
   })
 
   it('View button loads messages for the selected stream', async () => {
@@ -75,7 +75,7 @@ describe('AdminDashboard hardening (issue #16) — Red', () => {
       },
     ])
     renderAdmin()
-    expect(await screen.findByText('General')).toBeTruthy()
+    expect((await screen.findAllByText('General')).length).toBeGreaterThan(0)
 
     const viewButtons = screen.getAllByRole('button', { name: /view|select/i })
     fireEvent.click(viewButtons[0])
@@ -95,7 +95,7 @@ describe('AdminDashboard hardening (issue #16) — Red', () => {
       },
     ])
     renderAdmin()
-    expect(await screen.findByText('General')).toBeTruthy()
+    expect((await screen.findAllByText('General')).length).toBeGreaterThan(0)
 
     // Expected: a labeled Select wired to handleStreamSelect.
     // Currently no Select element exists (Red).
@@ -120,7 +120,7 @@ describe('AdminDashboard hardening (issue #16) — Red', () => {
 
     resolveFetch([{ id: 's-1', name: 'General', messageCount: 0, activityLevel: 0 }])
     await waitFor(() => {
-      expect(screen.getByText('General')).toBeTruthy()
+      expect(screen.getAllByText('General').length).toBeGreaterThan(0)
     })
   })
 
@@ -152,7 +152,7 @@ describe('AdminDashboard hardening (issue #16) — Red', () => {
     await waitFor(() => {
       expect(getStreams).toHaveBeenCalledTimes(2)
     })
-    expect(await screen.findByText('General')).toBeTruthy()
+    expect((await screen.findAllByText('General')).length).toBeGreaterThan(0)
   })
 
   it('message delete buttons say Delete (not Del)', async () => {
@@ -173,7 +173,7 @@ describe('AdminDashboard hardening (issue #16) — Red', () => {
       },
     ])
     renderAdmin()
-    expect(await screen.findByText('General')).toBeTruthy()
+    expect((await screen.findAllByText('General')).length).toBeGreaterThan(0)
 
     const viewButtons = screen.getAllByRole('button', { name: /view|select/i })
     fireEvent.click(viewButtons[0])

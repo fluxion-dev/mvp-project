@@ -231,7 +231,7 @@ describe('AdminDashboard delete stream/message (issues #9 #10) — Red', () => {
         })
     )
 
-    const delButtons = screen.getAllByRole('button', { name: /^del$/i })
+    const delButtons = screen.getAllByTitle('Delete message')
     expect(delButtons).toHaveLength(2)
 
     fireEvent.click(delButtons[0])
@@ -258,7 +258,7 @@ describe('AdminDashboard delete stream/message (issues #9 #10) — Red', () => {
     expect(await screen.findByText('Stream s-1')).toBeTruthy()
     await selectStreamWithMessages()
 
-    const delButtons = screen.getAllByRole('button', { name: /^del$/i })
+    const delButtons = screen.getAllByTitle('Delete message')
     await user.click(delButtons[0])
 
     const alert = await screen.findByRole('alert')

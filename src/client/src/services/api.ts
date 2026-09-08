@@ -106,7 +106,16 @@ export const addMessage = async (streamId: string, content: string): Promise<Mes
     },
     body: JSON.stringify({ content }),
   })
-  if (!res.ok) throw new Error('Failed to add message')
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    const message =
+      errorData.message ||
+      errorData.error ||
+      'Failed to add message'
+    const err = new Error(message)
+    ;(err as unknown as { status: number }).status = res.status
+    throw err
+  }
   return res.json()
 }
 
@@ -130,7 +139,16 @@ export const getMessages = async (streamId: string): Promise<Message[]> => {
   const res = await fetch(`${API_BASE}/api/streams/${streamId}/messages`, {
     headers: getAuthHeaders()
   })
-  if (!res.ok) throw new Error('Failed to fetch messages')
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    const message =
+      errorData.message ||
+      errorData.error ||
+      'Failed to fetch messages'
+    const err = new Error(message)
+    ;(err as unknown as { status: number }).status = res.status
+    throw err
+  }
   return res.json()
 }
 

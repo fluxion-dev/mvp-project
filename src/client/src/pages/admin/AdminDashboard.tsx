@@ -20,6 +20,9 @@ const AdminDashboard = () => {
   const [selectedStream, setSelectedStream] = useState<string | null>(null)
   const [muteUserId, setMuteUserId] = useState<string | null>(null)
   const [banUserId, setBanUserId] = useState<string | null>(null)
+  const [adminError, setAdminError] = useState<string | null>(null)
+  const [deletingStreamIds, setDeletingStreamIds] = useState<string[]>([])
+  const [deletingMessageIds, setDeletingMessageIds] = useState<string[]>([])
   const { username, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -37,35 +40,72 @@ const AdminDashboard = () => {
 
   const handleStreamSelect = async (streamId: string) => {
     setSelectedStream(streamId)
+    setAdminError(null)
     try {
       const data = await apiGetMessages(streamId)
       setMessages(data)
     } catch (err) {
       console.error(err)
+      if ((err as { status?: number }).status === 401) {
+        await logout()
+        navigate('/login', { replace: true })
+        return
+      }
+      setAdminError(err instanceof Error ? err.message : 'Failed to fetch messages')
     }
   }
 
   const handleDeleteStream = async (streamId: string) => {
-    if (!confirm('Are you sure you want to delete this stream?')) return
+    if (!window.confirm('Are you sure you want to delete this stream?')) return
+    setAdminError(null)
+    setDeletingStreamIds(prev => [...prev, streamId])
     try {
       await apiDeleteStream(streamId)
-      setStreams(streams.filter(id => id !== streamId))
+      setStreams(prev => prev.filter(id => id !== streamId))
       if (selectedStream === streamId) {
         setSelectedStream(null)
         setMessages([])
       }
     } catch (err) {
       console.error(err)
+      const status = (err as { status?: number }).status
+      if (status === 401) {
+        await logout()
+        navigate('/login', { replace: true })
+        return
+      }
+      if (status === 403) {
+        setAdminError('Admin only: you are not authorized to delete this stream')
+      } else {
+        setAdminError(err instanceof Error ? err.message : 'Failed to delete stream')
+      }
+    } finally {
+      setDeletingStreamIds(prev => prev.filter(id => id !== streamId))
     }
   }
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm('Are you sure you want to delete this message?')) return
+    if (!window.confirm('Are you sure you want to delete this message?')) return
+    setAdminError(null)
+    setDeletingMessageIds(prev => [...prev, messageId])
     try {
       await apiDeleteMessage(messageId)
-      setMessages(messages.filter(m => m.id !== messageId))
+      setMessages(prev => prev.filter(m => m.id !== messageId))
     } catch (err) {
       console.error(err)
+      const status = (err as { status?: number }).status
+      if (status === 401) {
+        await logout()
+        navigate('/login', { replace: true })
+        return
+      }
+      if (status === 403) {
+        setAdminError('Admin only: you are not authorized to delete this message')
+      } else {
+        setAdminError(err instanceof Error ? err.message : 'Failed to delete message')
+      }
+    } finally {
+      setDeletingMessageIds(prev => prev.filter(id => id !== messageId))
     }
   }
 
@@ -97,6 +137,7 @@ const AdminDashboard = () => {
   return (
     <div className="admin-dashboard">
       <h1>Admin Dashboard</h1>
+      {adminError && <p role="alert" className="error-message">{adminError}</p>}
       
       <div className="admin-controls">
         <h3>Streams</h3>
@@ -105,11 +146,19 @@ const AdminDashboard = () => {
             <li key={id}>
               <span>Stream {id}</span>
               <button
+                onClick={() => handleStreamSelect(id)}
+                style={{ marginLeft: '10px' }}
+                title="View messages"
+              >
+                View
+              </button>
+              <button
                 onClick={() => handleDeleteStream(id)}
+                disabled={deletingStreamIds.includes(id)}
                 style={{ marginLeft: '10px', background: 'tomato', color: 'white' }}
                 title="Delete stream"
               >
-                Delete
+                {deletingStreamIds.includes(id) ? 'Deleting…' : 'Delete'}
               </button>
             </li>
           ))}
@@ -128,9 +177,10 @@ const AdminDashboard = () => {
                   <button
                     style={{ marginLeft: '10px', background: 'tomato', color: 'white', fontSize: '10px' }}
                     onClick={() => handleDeleteMessage(msg.id)}
+                    disabled={deletingMessageIds.includes(msg.id)}
                     title="Delete message"
                   >
-                    Del
+                    {deletingMessageIds.includes(msg.id) ? 'Deleting…' : 'Del'}
                   </button>
                 </li>
               ))}

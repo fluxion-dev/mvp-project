@@ -70,10 +70,8 @@ function mockTwoMessages() {
 async function selectStreamWithMessages() {
   // AdminDashboard must expose a way to view/select a stream so its
   // messages (and per-message delete buttons) become visible.
-  const viewButton =
-    screen.queryByRole('button', { name: /view|select|messages/i }) ??
-    screen.getByText('Stream s-1')
-  fireEvent.click(viewButton)
+  const viewButtons = screen.getAllByRole('button', { name: /view|select|messages/i })
+  fireEvent.click(viewButtons[0])
   expect(await screen.findByText('first message')).toBeTruthy()
 }
 

@@ -12,24 +12,32 @@ const StreamPage = () => {
   const [postError, setPostError] = useState<string | null>(null)
   const [listError, setListError] = useState<string | null>(null)
   const [isPosting, setIsPosting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const { username, logout } = useAuth()
   const navigate = useNavigate()
 
   async function fetchMessages() {
     if (!streamId) return
     setListError(null)
+    setIsLoading(true)
     try {
       const data = await getMessages(streamId)
       setMessages(data)
-      setListError(null)
     } catch (err) {
       console.error(err)
-      if ((err as { status?: number }).status === 401) {
+      const status = (err as { status?: number }).status
+      if (status === 401) {
         await logout()
         navigate('/login', { replace: true })
         return
       }
-      setListError(err instanceof Error ? err.message : 'Failed to fetch messages')
+      if (status === 404) {
+        setListError('Stream not found')
+      } else {
+        setListError(err instanceof Error ? err.message : 'Failed to fetch messages')
+      }
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -84,6 +92,10 @@ const StreamPage = () => {
           </button>
         </>
       )}
+
+      {isLoading && <p>Loading messages…</p>}
+
+      {!isLoading && !listError && messages.length === 0 && <p>No messages yet</p>}
 
       <div className="message-list">
         {messages.map((message) => (

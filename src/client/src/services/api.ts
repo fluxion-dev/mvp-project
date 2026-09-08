@@ -28,14 +28,6 @@ export interface CreateStreamRequest {
   name: string
 }
 
-export interface MessageResponse {
-  id: string
-  content: string
-  createdAt: string
-  userId: string
-  streamId: string
-}
-
 export interface User {
   id: string
   email: string

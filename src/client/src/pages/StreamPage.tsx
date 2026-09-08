@@ -1,18 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { addMessage, getMessages } from '../services/api'
-
-interface Message {
-  id: string
-  streamId: string
-  content: string
-  createdAt: string
-  user: {
-    id: string
-    username: string
-  }
-}
+import { addMessage, getMessages, type Message } from '../services/api'
 
 const MAX_MESSAGE_LENGTH = 500
 

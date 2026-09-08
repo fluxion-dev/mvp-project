@@ -14,6 +14,7 @@ using mvp_server.Models;
 [Route("api/streams")]
 public class StreamController : ControllerBase
 {
+    private const int MaxContentLength = 500;
     private readonly AppDbContext _context;
 
     public StreamController(AppDbContext context)
@@ -83,8 +84,8 @@ public class StreamController : ControllerBase
             return BadRequest(new { message = "content is required" });
 
         var trimmed = request.Content.Trim();
-        if (trimmed.Length > 500)
-            return BadRequest(new { message = "content must be 500 characters or fewer" });
+        if (trimmed.Length > MaxContentLength)
+            return BadRequest(new { message = $"content must be {MaxContentLength} characters or fewer" });
 
         var stream = await _context.Streams.FindAsync(streamId);
         if (stream == null) return NotFound();

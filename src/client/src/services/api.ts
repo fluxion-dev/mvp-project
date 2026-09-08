@@ -116,7 +116,16 @@ export const deleteStream = async (streamId: string) => {
     method: 'DELETE',
     headers: getAuthHeaders()
   })
-  if (!res.ok) throw new Error('Failed to delete stream')
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    const message =
+      errorData.message ||
+      errorData.error ||
+      'Failed to delete stream'
+    const err = new Error(message)
+    ;(err as unknown as { status: number }).status = res.status
+    throw err
+  }
 }
 
 export const deleteMessage = async (messageId: string) => {
@@ -124,7 +133,16 @@ export const deleteMessage = async (messageId: string) => {
     method: 'DELETE',
     headers: getAuthHeaders()
   })
-  if (!res.ok) throw new Error('Failed to delete message')
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    const message =
+      errorData.message ||
+      errorData.error ||
+      'Failed to delete message'
+    const err = new Error(message)
+    ;(err as unknown as { status: number }).status = res.status
+    throw err
+  }
 }
 
 export const getMessages = async (streamId: string): Promise<Message[]> => {

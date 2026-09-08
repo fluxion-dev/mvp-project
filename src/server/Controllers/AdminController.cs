@@ -28,6 +28,8 @@ public class AdminController : ControllerBase
         var stream = await _context.Streams.FindAsync(streamId);
         if (stream == null) return NotFound();
 
+        var messages = await _context.Messages.Where(m => m.StreamId == streamId).ToListAsync();
+        _context.Messages.RemoveRange(messages);
         _context.Streams.Remove(stream);
         await _context.SaveChangesAsync();
         return Ok(new { message = "Stream deleted successfully" });

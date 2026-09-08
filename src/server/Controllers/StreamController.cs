@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -73,6 +74,48 @@ public class StreamController : ControllerBase
                 CreatedAt = stream.CreatedAt
             });
     }
+
+    [HttpPost("{streamId:guid}/messages")]
+    [Authorize]
+    public async Task<ActionResult<MessageDto>> PostMessage(Guid streamId, CreateMessageRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Content))
+            return BadRequest(new { message = "content is required" });
+
+        var trimmed = request.Content.Trim();
+        if (trimmed.Length > 500)
+            return BadRequest(new { message = "content must be 500 characters or fewer" });
+
+        var stream = await _context.Streams.FindAsync(streamId);
+        if (stream == null) return NotFound();
+
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        Guid? userId = null;
+        if (claim != null && Guid.TryParse(claim, out var parsed))
+            userId = parsed;
+
+        var message = new Message
+        {
+            Id = Guid.NewGuid(),
+            Content = trimmed,
+            CreatedAt = DateTime.UtcNow,
+            StreamId = streamId,
+            UserId = userId
+        };
+
+        _context.Messages.Add(message);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetStream), new { id = streamId, messageId = message.Id },
+            new MessageDto
+            {
+                Id = message.Id,
+                Content = message.Content,
+                CreatedAt = message.CreatedAt,
+                UserId = message.UserId,
+                StreamId = message.StreamId
+            });
+    }
 }
 
 public class StreamDto
@@ -88,4 +131,18 @@ public class StreamCreateRequest
     [Required]
     [StringLength(100, MinimumLength = 1)]
     public string Name { get; set; } = string.Empty;
+}
+
+public class CreateMessageRequest
+{
+    public string Content { get; set; } = string.Empty;
+}
+
+public class MessageDto
+{
+    public Guid Id { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public Guid? UserId { get; set; }
+    public Guid StreamId { get; set; }
 }

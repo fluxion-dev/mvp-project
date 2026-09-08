@@ -82,6 +82,10 @@ const Dashboard = () => {
         <h1>Streams</h1>
         <div className="dashboard-user">
           {username && <span>Logged in as: {username}</span>}
+          {/* Always show for MVP; backend 403 guards admin actions (no JWT roles yet). */}
+          <Link to="/admin" className="admin-link">
+            Admin
+          </Link>
           <button type="button" onClick={handleLogout} className="logout-button">
             Logout
           </button>

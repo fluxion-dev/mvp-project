@@ -76,6 +76,32 @@ public class StreamController : ControllerBase
             });
     }
 
+    [HttpPut("{id:guid}")]
+    [Authorize]
+    public async Task<ActionResult<StreamDto>> UpdateStream(Guid id, StreamCreateRequest request)
+    {
+        var stream = await _context.Streams.FindAsync(id);
+        if (stream == null) return NotFound();
+
+        if (request == null || string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(new { message = "name is required" });
+
+        var trimmed = request.Name.Trim();
+        if (trimmed.Length > 100)
+            return BadRequest(new { message = "name must be 100 characters or fewer" });
+
+        stream.Name = trimmed;
+        await _context.SaveChangesAsync();
+
+        return Ok(new StreamDto
+        {
+            Id = stream.Id,
+            Name = stream.Name,
+            ActivityLevel = stream.ActivityLevel,
+            CreatedAt = stream.CreatedAt
+        });
+    }
+
     [HttpGet("{streamId:guid}/messages")]
     public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessages(Guid streamId)
     {

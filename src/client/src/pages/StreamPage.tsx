@@ -23,15 +23,15 @@ const StreamPage = () => {
     try {
       const data = await getMessages(streamId)
       setMessages(data)
-      setListError(null)
     } catch (err) {
       console.error(err)
-      if ((err as { status?: number }).status === 401) {
+      const status = (err as { status?: number }).status
+      if (status === 401) {
         await logout()
         navigate('/login', { replace: true })
         return
       }
-      if ((err as { status?: number }).status === 404) {
+      if (status === 404) {
         setListError('Stream not found')
       } else {
         setListError(err instanceof Error ? err.message : 'Failed to fetch messages')

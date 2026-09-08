@@ -95,7 +95,7 @@ public class StreamController : ControllerBase
             .ToList();
 
         var users = userIds.Count == 0
-            ? new Dictionary<Guid, mvp_server.Models.ApplicationUser>()
+            ? new Dictionary<Guid, ApplicationUser>()
             : await _context.Users
                 .Where(u => userIds.Contains(u.Id))
                 .AsNoTracking()

@@ -76,6 +76,50 @@ public class StreamController : ControllerBase
             });
     }
 
+    [HttpGet("{streamId:guid}/messages")]
+    public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessages(Guid streamId)
+    {
+        var stream = await _context.Streams.FindAsync(streamId);
+        if (stream == null) return NotFound();
+
+        var messages = await _context.Messages
+            .Where(m => m.StreamId == streamId)
+            .OrderByDescending(m => m.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var userIds = messages
+            .Where(m => m.UserId.HasValue)
+            .Select(m => m.UserId!.Value)
+            .Distinct()
+            .ToList();
+
+        var users = userIds.Count == 0
+            ? new Dictionary<Guid, mvp_server.Models.ApplicationUser>()
+            : await _context.Users
+                .Where(u => userIds.Contains(u.Id))
+                .AsNoTracking()
+                .ToDictionaryAsync(u => u.Id);
+
+        var result = messages.Select(m => new MessageDto
+        {
+            Id = m.Id,
+            Content = m.Content,
+            CreatedAt = m.CreatedAt,
+            UserId = m.UserId,
+            StreamId = m.StreamId,
+            User = m.UserId.HasValue && users.TryGetValue(m.UserId.Value, out var user)
+                ? new MessageUserDto
+                {
+                    Id = user.Id,
+                    Username = user.DisplayName ?? user.UserName ?? string.Empty
+                }
+                : null
+        }).ToList();
+
+        return Ok(result);
+    }
+
     [HttpPost("{streamId:guid}/messages")]
     [Authorize]
     public async Task<ActionResult<MessageDto>> PostMessage(Guid streamId, CreateMessageRequest request)
@@ -146,4 +190,11 @@ public class MessageDto
     public DateTime CreatedAt { get; set; }
     public Guid? UserId { get; set; }
     public Guid StreamId { get; set; }
+    public MessageUserDto? User { get; set; }
+}
+
+public class MessageUserDto
+{
+    public Guid Id { get; set; }
+    public string Username { get; set; } = string.Empty;
 }

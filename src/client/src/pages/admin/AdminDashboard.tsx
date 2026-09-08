@@ -18,8 +18,12 @@ const AdminDashboard = () => {
   const [streams, setStreams] = useState<string[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [selectedStream, setSelectedStream] = useState<string | null>(null)
-  const [muteUserId, setMuteUserId] = useState<string | null>(null)
-  const [banUserId, setBanUserId] = useState<string | null>(null)
+  const [muteUserId, setMuteUserId] = useState<string>('')
+  const [banUserId, setBanUserId] = useState<string>('')
+  const [muteDuration, setMuteDuration] = useState<string>('60')
+  const [banDuration, setBanDuration] = useState<string>('7')
+  const [moderationError, setModerationError] = useState<string | null>(null)
+  const [moderationSuccess, setModerationSuccess] = useState<string | null>(null)
   const [adminError, setAdminError] = useState<string | null>(null)
   const [deletingStreamIds, setDeletingStreamIds] = useState<string[]>([])
   const [deletingMessageIds, setDeletingMessageIds] = useState<string[]>([])
@@ -110,22 +114,74 @@ const AdminDashboard = () => {
   }
 
   const handleMuteUser = async () => {
-    if (!muteUserId) return
+    const userId = muteUserId.trim()
+    if (!userId) {
+      setModerationSuccess(null)
+      setModerationError('User ID is required')
+      return
+    }
+    const duration = Number(muteDuration)
+    if (!muteDuration.trim() || !Number.isFinite(duration) || duration <= 0) {
+      setModerationSuccess(null)
+      setModerationError('Duration must be a positive number')
+      return
+    }
+    setModerationError(null)
+    setModerationSuccess(null)
     try {
-      await muteUser(muteUserId, 60)
-      setMuteUserId(null)
+      await muteUser(userId, duration)
+      setMuteUserId('')
+      setMuteDuration('')
+      setModerationSuccess('User muted successfully')
     } catch (err) {
       console.error(err)
+      const status = (err as { status?: number }).status
+      if (status === 401) {
+        await logout()
+        navigate('/login', { replace: true })
+        return
+      }
+      if (status === 403) {
+        setModerationError('Admin only: you are not authorized to mute this user')
+      } else {
+        setModerationError(err instanceof Error ? err.message : 'Failed to mute user')
+      }
     }
   }
 
   const handleBanUser = async () => {
-    if (!banUserId) return
+    const userId = banUserId.trim()
+    if (!userId) {
+      setModerationSuccess(null)
+      setModerationError('User ID is required')
+      return
+    }
+    const duration = Number(banDuration)
+    if (!banDuration.trim() || !Number.isFinite(duration) || duration <= 0) {
+      setModerationSuccess(null)
+      setModerationError('Duration must be a positive number')
+      return
+    }
+    setModerationError(null)
+    setModerationSuccess(null)
     try {
-      await banUser(banUserId, 7)
-      setBanUserId(null)
+      await banUser(userId, duration)
+      setBanUserId('')
+      setBanDuration('')
+      setModerationSuccess('User banned successfully')
     } catch (err) {
       console.error(err)
+      const status = (err as { status?: number }).status
+      if (status === 401) {
+        await logout()
+        navigate('/login', { replace: true })
+        return
+      }
+      if (status === 403) {
+        setModerationError('Admin only: you are not authorized to ban this user')
+      } else {
+        setModerationError(err instanceof Error ? err.message : 'Failed to ban user')
+      }
     }
   }
 
@@ -191,10 +247,20 @@ const AdminDashboard = () => {
         <h3>Moderation</h3>
         {selectedStream && (
           <div>
+            {moderationError && <p role="alert" className="error-message">{moderationError}</p>}
+            {moderationSuccess && <p role="status" className="success-message">{moderationSuccess}</p>}
             <input
               type="text"
               placeholder="User ID to mute"
+              value={muteUserId}
               onChange={e => setMuteUserId(e.target.value)}
+              style={{ marginRight: '5px' }}
+            />
+            <input
+              type="text"
+              placeholder="Mute duration (minutes)"
+              value={muteDuration}
+              onChange={e => setMuteDuration(e.target.value)}
               style={{ marginRight: '5px' }}
             />
             <button onClick={handleMuteUser} style={{ marginLeft: '5px' }}>Mute</button>
@@ -202,7 +268,15 @@ const AdminDashboard = () => {
             <input
               type="text"
               placeholder="User ID to ban"
+              value={banUserId}
               onChange={e => setBanUserId(e.target.value)}
+              style={{ marginRight: '5px' }}
+            />
+            <input
+              type="text"
+              placeholder="Ban duration (days)"
+              value={banDuration}
+              onChange={e => setBanDuration(e.target.value)}
               style={{ marginRight: '5px' }}
             />
             <button onClick={handleBanUser}>Ban</button>

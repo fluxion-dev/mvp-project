@@ -171,7 +171,16 @@ export const muteUser = async (userId: string, durationMinutes: number = 60): Pr
     },
     body: JSON.stringify({ userId, durationMinutes }),
   })
-  if (!res.ok) throw new Error('Failed to mute user')
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    const message =
+      errorData.message ||
+      errorData.error ||
+      'Failed to mute user'
+    const err = new Error(message)
+    ;(err as unknown as { status: number }).status = res.status
+    throw err
+  }
 }
 
 export const banUser = async (userId: string, durationDays: number = 7): Promise<void> => {
@@ -183,7 +192,16 @@ export const banUser = async (userId: string, durationDays: number = 7): Promise
     },
     body: JSON.stringify({ userId, durationDays }),
   })
-  if (!res.ok) throw new Error('Failed to ban user')
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    const message =
+      errorData.message ||
+      errorData.error ||
+      'Failed to ban user'
+    const err = new Error(message)
+    ;(err as unknown as { status: number }).status = res.status
+    throw err
+  }
 }
 
 export const register = async (email: string, password: string, displayName: string): Promise<AuthResponse> => {

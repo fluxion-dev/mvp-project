@@ -49,6 +49,11 @@ public class AdminController : ControllerBase
     [HttpPost("mute-user")]
     public async Task<IActionResult> MuteUser([FromBody] MuteRequest request)
     {
+        if (request == null || string.IsNullOrWhiteSpace(request.UserId) || !Guid.TryParse(request.UserId, out _))
+            return BadRequest(new { message = "Valid UserId is required" });
+        if (request.DurationMinutes <= 0)
+            return BadRequest(new { message = "DurationMinutes must be greater than 0" });
+
         var user = await _userManager.FindByIdAsync(request.UserId);
         if (user == null) return NotFound();
 
@@ -59,6 +64,11 @@ public class AdminController : ControllerBase
     [HttpPost("ban-user")]
     public async Task<IActionResult> BanUser([FromBody] BanRequest request)
     {
+        if (request == null || string.IsNullOrWhiteSpace(request.UserId) || !Guid.TryParse(request.UserId, out _))
+            return BadRequest(new { message = "Valid UserId is required" });
+        if (request.DurationDays <= 0)
+            return BadRequest(new { message = "DurationDays must be greater than 0" });
+
         var user = await _userManager.FindByIdAsync(request.UserId);
         if (user == null) return NotFound();
 
